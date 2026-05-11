@@ -125,12 +125,14 @@ def answer(model):
     display("Does this printer need repair?", 2)
     if simple_select(["Yes", "No"]) == "No":
         return
-
-    display("Please enter the S/N, Deptartment, Location, or other info to identify the printer.", 2)
+    
+    display("Please enter the location or department of the printer.", 2)
+    location = simple_text()
+    display("Please enter the S/N of the printer.", 2)
     sn = simple_text()
     display("Which part(s) need replacing?", 2)
     part = simple_text()
-    answers.append(f"{model} ({sn}): {part}")
+    answers.append(f"({location}) {model} | {sn}: {part}")
     display("Parts added to list. Make sure to exit in the main menu to save.")
     screens["main"].getch()
     ref(screens["main"])
