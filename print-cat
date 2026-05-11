@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+import curses
+from curses import wrapper
+from curses.textpad import Textbox
+
+height = 0
+width = 0
+ylimit = 6
+
+screens = {}
+colors = {}
+brother = ["MFC-L3780CDW", "MFC-L2820DW", "MFC-L8930CDW", "MFC-L2900DW", "MFC-J1205W"]
+zebra = []
+epson = []
+hp = []
+
+brands = {"Brother": brother, "Zebra": zebra, "Epson": epson, "HP": hp}
+answers = []
+
+def main(stdscr):
+    global height, width
+    height, width = stdscr.getmaxyx()
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+    highlight = curses.color_pair(1)
+    stdscr.clear()
+    stdscr.refresh()
+    main_win = curses.newwin(height - 5, width, 2, 0)
+    user_input = curses.newwin(1, width - 1, height - 1, 1)
+    tbox = Textbox(user_input)
+    screens.update({"main": main_win})
+    screens.update({"box": user_input})
+    screens.update({"text": tbox})
+    screens.update({"source": stdscr})
+    colors.update({"highlight": highlight})
+    while True:
+        ref(screens["main"])
+        choice = simple_select(["Start", "Erase Current Order", "Read Current Order", "Exit"])
+        if choice == "Start":
+            start()
+            save(answers)
+        elif "Erase" in choice:
+            display("Are you sure you want to erase your order list?", 2)
+            if simple_select(["Yes", "No"]) == "No":
+                continue
+            erase()    
+        elif "Read" in choice:
+            view()
+        else:
+            exit()
+            save()
+
+def view():
+    ref(screens["main"])
+    data = []
+    try:
+        with open("parts_order.txt", "r") as file:
+            data = file.readlines()
+    except:
+        pass
+
+    if not data:
+        display("No order data found.")
+        screens["main"].getch()
+        return
+    
+    print_list(screens["main"], data)
+    screens["main"].getch()    
+
+def save(listy):
+    with open("parts_order.txt", "a") as file:
+        for item in listy:
+            file.write(item + '\n') 
+
+def erase():
+    with open("parts_order.txt", "w") as file:
+        file.write('')
+    display("Current order has been erased.")
+    screens["main"].getch()
+
+
+def start():
+    ref(screens["main"])
+    pos = 0
+    current_list = extract_list(brands)
+    print_list(screens["main"], current_list)
+    while True:
+        key = screens["main"].getch()
+        if key == ord('\x1b'):
+            break
+        elif key == ord('w'):
+            pos = select(pos, key, screens["main"], current_list)
+        elif key == ord('s'):
+            pos = select(pos, key, screens["main"], current_list)
+        elif key == ord('e'):
+            current_list = advance(current_list, current_list[pos])
+            if not current_list:
+                display("No printer models found")
+                screens["main"].getch()
+                ref(screens["main"])
+            else:
+                model = simple_select(current_list)
+                answer(model)
+            current_list = extract_list(brands)
+            print_list(screens["main"], current_list)
+
+
+def simple_select(current_list):
+    pos = 0
+    print_list(screens["main"], current_list)
+    while True:
+        key = screens["main"].getch()
+        if key == ord('w'):
+            pos = select(pos, key, screens["main"], current_list)
+        elif key == ord('s'):
+            pos = select(pos, key, screens["main"], current_list)
+        elif key == ord('e'):
+            return current_list[pos]
+
+def simple_text():
+    inp = screens["text"].edit().strip()
+    ref(screens["box"])
+    return inp
+
+def answer(model):
+    display("Does this printer need repair?", 2)
+    if simple_select(["Yes", "No"]) == "No":
+        return
+
+    display("Please enter the S/N, Deptartment, Location, or other info to identify the printer.", 2)
+    sn = simple_text()
+    display("Which part(s) need replacing?", 2)
+    part = simple_text()
+    answers.append(f"{model} ({sn}): {part}")
+    display("Parts added to list. Make sure to exit in the main menu to save.")
+    screens["main"].getch()
+    ref(screens["main"])
+
+def display(text, offset=0):
+    ref(screens["main"])
+    screens["main"].addstr(0 + offset, 0, text)
+    screens["main"].refresh()
+
+def advance(listy, selection):
+    if listy == extract_list(brands):
+        return brands.get(selection)    
+    
+def extract_list(data):
+    listy = []
+    for key, val in data.items():
+        listy.append(key)
+    return listy
+
+def print_list(screen, text_list):
+    y = 0
+    for item in text_list:
+        if y >= height:
+            break
+        screen.addstr(y, 0, item)
+        y += 1
+    screen.refresh()
+
+def select(pos, key, screen, listy):
+    if key == ord("s"):
+        pos += 1
+        back = 1
+        if pos > len(listy) - 1:
+            pos -= 1
+    elif key == ord("w"):
+        pos -= 1
+        if pos < 0:
+            pos = 0
+        back = -1
+    screen.addstr(pos - back, 0, listy[pos - back])
+    screen.addstr(pos, 0, listy[pos], colors["highlight"])
+    screen.refresh()
+    return pos
+
+def ref(screen):
+    screen.clear()
+    screen.refresh()
+
+wrapper(main)
