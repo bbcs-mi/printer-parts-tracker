@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import os
 import curses
 from curses import wrapper
 from curses.textpad import Textbox
 import subprocess
+from time import sleep
 
 height = 0
 width = 0
@@ -102,6 +104,7 @@ def main(stdscr):
             else:
                 display("Updating for windows..")
                 name = "print-cat.py"
+            sleep(0.3)
             with open(name, "w") as file:
                 file.write(result.stdout)
             display("Please exit and reopen the program to apply the update.")
@@ -157,11 +160,11 @@ def start():
             screens["source"].addstr(0, 0, f"x={x} y={y} state={mouse_state}         ")
             screens["source"].refresh()
             
-            if mouse_state == 1 or mouse_state == 2 and y < y_up and (x > width // 5 and x < width - (width // 5)):
+            if mouse_state and y < y_up and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('w'), current_list, current_list)
             elif mouse_state == 1 or mouse_state == 2 and y > y_down and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('s'), current_list, current_list)        
-            elif mouse_state == 1 or mouse_state == 2 and x > x_right:
+            elif mouse_state and x > x_right:
                 current_list = advance(current_list, current_list[pos + globalpos])
                 if not current_list:
                     display("No printer models found")
@@ -173,7 +176,7 @@ def start():
                 current_list = extract_list(brands)
                 print_list(0, globalpos, current_list)
  
-            elif mouse_state == 1 and x <= 20:
+            elif mouse_state and x <= 20:
                 save()
                 break
         else:
@@ -213,11 +216,11 @@ def simple_select(current_list):
             y_up = int(height * 0.33)  
             y_down = int(height * 0.66)
             x_right = int(width * 0.80)
-            if mouse_state == 1 or mouse_state == 2 and y < y_up and (x > width // 5 and x < width - (width // 5)):
+            if mouse_state and y < y_up and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('w'), current_list, current_list)
-            elif mouse_state == 1 or mouse_state == 2 and y > y_down and (x > width // 5 and x < width - (width // 5)):
+            elif mouse_state and y > y_down and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('s'), current_list, current_list)        
-            elif mouse_state == 1 or mouse_state == 2 and x > x_right:
+            elif mouse_state and x > x_right:
                 return current_list[pos + globalpos]
         else:
             if key == ord('w'):
