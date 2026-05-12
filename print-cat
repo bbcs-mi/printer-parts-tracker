@@ -162,8 +162,15 @@ def start():
             
             if mouse_state == 1 and y < y_up and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('w'), current_list, current_list)
-            elif (mouse_state) or mouse_state == 2 and y > y_down and (x > width // 5 and x < width - (width // 5)):
+            elif mouse_state == 1 and y > y_down and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('s'), current_list, current_list)        
+            elif mouse_state == 1024 and y < y_up and (x > width // 5 and x < width - (width // 5)):
+                for _ in range(10):
+                    pos = select(pos, ord('w'), current_list, current_list)
+            elif mouse_state == 1024 and y > y_down and (x > width // 5 and x < width - (width // 5)):
+                for _ in range(10):
+                    pos = select(pos, ord('s'), current_list, current_list)
+
             elif mouse_state == 1 and x > x_right:
                 current_list = advance(current_list, current_list[pos + globalpos])
                 if not current_list:
@@ -220,6 +227,13 @@ def simple_select(current_list):
                 pos = select(pos, ord('w'), current_list, current_list)
             elif mouse_state == 1 and y > y_down and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('s'), current_list, current_list)        
+            elif mouse_state == 1024 and y < y_up and (x > width // 5 and x < width - (width // 5)):
+                for _ in range(10):
+                    pos = select(pos, ord('w'), current_list, current_list)
+            elif mouse_state == 1024 and y > y_down and (x > width // 5 and x < width - (width // 5)):
+                for _ in range(10):
+                    pos = select(pos, ord('s'), current_list, current_list)
+
             elif mouse_state == 1 and x > x_right:
                 return current_list[pos + globalpos]
         else:
