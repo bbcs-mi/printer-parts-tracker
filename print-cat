@@ -6,25 +6,74 @@ from curses.textpad import Textbox
 height = 0
 width = 0
 ylimit = 6
-
+globalpos = 0
+offset = 1
+highlight = None
 screens = {}
 colors = {}
-brother = ["MFC-L3780CDW", "MFC-L2820DW", "MFC-L8930CDW", "MFC-L2900DW", "MFC-J1205W"]
-zebra = []
-epson = []
+
+brother = [
+    "MFC-230C","MFC-240C MFP","MFC-250C","MFC-255CW",
+    "MFC-290C","MFC-295CN","MFC-3360C MFP","MFC-440CN MFP",
+    "MFC-465CN","MFC-490CW","MFC-495CW","MFC-5460CN MFP",
+    "MFC-5490CN","MFC-5860CN MFP","MFC-5890CN","MFC-5895CW",
+    "MFC-6490CW","MFC-660CN","MFC-665CW MFP","MFC-680CN",
+    "MFC-685CW","MFC-6890CDW","MFC-6890DW","MFC-7240",
+    "MFC-7360N","MFC-7365DN","MFC-7460DN","MFC-7860DW",
+    "MFC-790CW","MFC-795CW","MFC-845CW MFP","MFC-885CW",
+    "MFC-990CW","MFC-J1010DW","MFC-J1012DW","MFC-J1170DW",
+    "MFC-J220","MFC-J245","MFC-J265W","MFC-J270W",
+    "MFC-J280W","MFC-J285DW","MFC-J410W","MFC-J415W",
+    "MFC-J425W","MFC-J430W","MFC-J4310DW","MFC-J4320DW",
+    "MFC-J4335DW","MFC-J4345DW XL","MFC-J435W","MFC-J4410DW",
+    "MFC-J4420DW","MFC-J450DW","MFC-J4510DW","MFC-J4535DW",
+    "MFC-J4535DW XL","MFC-J460DW","MFC-J4610DW","MFC-J4620DW",
+    "MFC-J4625DW","MFC-J470DW","MFC-J4710DW","MFC-J475DW",
+    "MFC-J480DW","MFC-J485DW","MFC-J491DW","MFC-J497DW",
+    "MFC-J5320DW","MFC-J5330DW","MFC-J5335DW","MFC-J5520DW",
+    "MFC-J5620DW","MFC-J5625DW","MFC-J5720DW","MFC-J5730DW",
+    "MFC-J5830DW","MFC-J5830DWXL","MFC-J5845DW","MFC-J5845DWXL",
+    "MFC-J5910DW","MFC-J5930DW","MFC-J5945DW","MFC-J615W",
+    "MFC-J625DW","MFC-J625W","MFC-J630W","MFC-J650DW",
+    "MFC-J6510DW","MFC-J6520DW","MFC-J6530DW","MFC-J6535DW",
+    "MFC-J6535DWXL","MFC-J6545DW","MFC-J6545DWXL","MFC-J6710DW",
+    "MFC-J6720DW","MFC-J680DW","MFC-J690DW","MFC-J6910DW",
+    "MFC-J6920DW","MFC-J6930DW","MFC-J6935DW","MFC-J6945DW","MFC-J825DW",
+    "MFC-J835DW","MFC-J870DW","MFC-J875DW",
+    "MFC-J880DW","MFC-J885DW","MFC-J890DW","MFC-J895D","MFC-J995DW",
+    "MFC-J995DWXL","MFC-L2680W","MFC-L2685DW","MFC-L2690DW","MFC-L2700DN",
+    "MFC-L2700DW","MFC-L2703DW","MFC-L2705DW","MFC-L2707DW","MFC-L2710DN",
+    "MFC-L2710DW","MFC-L2713DW","MFC-L2715DW","MFC-L2717DW","MFC-L2720DW",
+    "MFC-L2730DW","MFC-L2740DW","MFC-L2750DW XL","MFC-L2750DW","MFC-L2760DW","MFC-L2807DW",
+    "MFC-L2820DW","MFC-L2820DWXL","MFC-L2900DW","MFC-L2900DWXL","MFC-L2980DW",
+    "MFC-L3710CW","MFC-L3730CDN","MFC-L3750CDW","MFC-L3770CDW","MFC-L5700DW",
+    "MFC-L5800DW","MFC-L5900DW","MFC-L6700DW","MFC-L6750DW","MFC-L6800DW",
+    "MFC-L6900DW","MFC-L8600CDW","MFC-L8610CDW","MFC-L8650CDW","MFC-L8690CDW","MFC-L8850CDW",
+    "MFC-L8900CDW","MFC-L9550CDW","MFC-L9570CDW","MFC-EX670W","MFC-L9610CDN",
+    "MFC-L9630CDN (TN810)","MFC-L9630CDN (TN815)","MFC-L9670CDN (TN810)","MFC-L9670CDN (TN815)"]
+
+zebra = ["105SL Plus", "ZT231", "ZT6", "ZT400", "ZT510", "ZT200", "ZT100", "ZQ600", "ZQ500", "ZQ300", "ZT111", 
+        "ZT411", "ZT610", "ZT620", "ZT410", "ZT420", "ZT421", "ZT220", "ZT230", "ZT231",
+        "105SL", "ZM400", "ZM600", "S4M", "110Xi4", "140Xi4", "170Xi4", "220Xi4", "90XiIII", "110XiIII",
+        "140XiIII", "170XiIII", "220XiIII"]
+
+epson = ["AM-C4000", "AM-C5000", "AM-C6000", "ST-C8000"]
+
 hp = []
 
 brands = {"Brother": brother, "Zebra": zebra, "Epson": epson, "HP": hp}
 answers = []
 
 def main(stdscr):
-    global height, width
+    global height, width, highlight
     height, width = stdscr.getmaxyx()
+    curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+    curses.mouseinterval(0)
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
     highlight = curses.color_pair(1)
     stdscr.clear()
     stdscr.refresh()
-    main_win = curses.newwin(height - 5, width, 2, 0)
+    main_win = curses.newwin(height - 2, width, 2, 0)
     user_input = curses.newwin(1, width - 1, height - 1, 1)
     tbox = Textbox(user_input)
     screens.update({"main": main_win})
@@ -37,7 +86,6 @@ def main(stdscr):
         choice = simple_select(["Start", "Erase Current Order", "Read Current Order", "Exit"])
         if choice == "Start":
             start()
-            save(answers)
         elif "Erase" in choice:
             display("Are you sure you want to erase your order list?", 2)
             if simple_select(["Yes", "No"]) == "No":
@@ -63,13 +111,14 @@ def view():
         screens["main"].getch()
         return
     
-    print_list(screens["main"], data)
+    print_list(0, globalpos, data)
     screens["main"].getch()    
 
-def save(listy):
-    with open("parts_order.txt", "a") as file:
-        for item in listy:
-            file.write(item + '\n') 
+def save():
+    if answers:
+        with open("parts_order.txt", "a") as file:
+            for item in answers:
+                file.write(item + '\n') 
 
 def erase():
     with open("parts_order.txt", "w") as file:
@@ -79,20 +128,30 @@ def erase():
 
 
 def start():
-    ref(screens["main"])
+    global globalpos
+    ref(screens["main"])    
+    globalpos = 0
     pos = 0
     current_list = extract_list(brands)
-    print_list(screens["main"], current_list)
+    print_list(0, globalpos, current_list)
     while True:
         key = screens["main"].getch()
+        if key == curses.KEY_MOUSE:
+            _, x, y, _, mouse_state = curses.getmouse()
+        if mouse_state & curses.BUTTON4_PRESSED:
+            pos = select(pos, ord('w'), current_list, current_list)
+        elif mouse_state & curses.BUTTON5_PRESSED:
+            pos = select(pos, ord('s'), current_list, current_list)
+
         if key == ord('\x1b'):
+            save()
             break
         elif key == ord('w'):
-            pos = select(pos, key, screens["main"], current_list)
+            pos = select(pos, key, current_list, current_list)
         elif key == ord('s'):
-            pos = select(pos, key, screens["main"], current_list)
+             pos = select(pos, key, current_list, current_list)
         elif key == ord('e'):
-            current_list = advance(current_list, current_list[pos])
+            current_list = advance(current_list, current_list[pos + globalpos])
             if not current_list:
                 display("No printer models found")
                 screens["main"].getch()
@@ -101,20 +160,24 @@ def start():
                 model = simple_select(current_list)
                 answer(model)
             current_list = extract_list(brands)
-            print_list(screens["main"], current_list)
+            print_list(0, globalpos, current_list)
+
 
 
 def simple_select(current_list):
+    global globalpos
+    ref(screens["main"])
+    globalpos = 0
     pos = 0
-    print_list(screens["main"], current_list)
+    remaining_list = print_list(0, globalpos, current_list)
     while True:
         key = screens["main"].getch()
         if key == ord('w'):
-            pos = select(pos, key, screens["main"], current_list)
+            pos = select(pos, key, remaining_list, current_list)
         elif key == ord('s'):
-            pos = select(pos, key, screens["main"], current_list)
+            pos = select(pos, key, remaining_list, current_list)
         elif key == ord('e'):
-            return current_list[pos]
+            return current_list[pos + globalpos]
 
 def simple_text():
     inp = screens["text"].edit().strip()
@@ -122,15 +185,15 @@ def simple_text():
     return inp
 
 def answer(model):
-    display("Does this printer need repair?", 2)
+    display("Does this printer need repair?", 3)
     if simple_select(["Yes", "No"]) == "No":
         return
     
-    display("Please enter the location or department of the printer.", 2)
+    display("Please enter the location or department of the printer.", 3)
     location = simple_text()
-    display("Please enter the S/N of the printer.", 2)
+    display("Please enter the S/N of the printer.", 3)
     sn = simple_text()
-    display("Which part(s) need replacing?", 2)
+    display("Which part(s) need replacing?", 3)
     part = simple_text()
     answers.append(f"({location}) {model} | {sn}: {part}")
     display("Parts added to list. Make sure to exit in the main menu to save.")
@@ -152,29 +215,52 @@ def extract_list(data):
         listy.append(key)
     return listy
 
-def print_list(screen, text_list):
-    y = 0
-    for item in text_list:
-        if y >= height:
-            break
-        screen.addstr(y, 0, item)
-        y += 1
-    screen.refresh()
+def print_list(y, offset, menu, scroll=0):
+    visible = menu[offset:offset + (height - 2)]
 
-def select(pos, key, screen, listy):
+    for index, item in enumerate(visible):
+        screens["main"].addstr(y + index, 0, item)
+
+    screens["main"].refresh()
+    return visible
+
+def select(pos, key, menu, view):
+    global globalpos
+    old_global = globalpos
+    max_visible = height - 3
+    max_total = len(view) - 1
+
+    absolute_pos = globalpos + pos
+
     if key == ord("s"):
-        pos += 1
-        back = 1
-        if pos > len(listy) - 1:
-            pos -= 1
+        if absolute_pos < max_total:
+            absolute_pos += 1
+
     elif key == ord("w"):
-        pos -= 1
-        if pos < 0:
-            pos = 0
-        back = -1
-    screen.addstr(pos - back, 0, listy[pos - back])
-    screen.addstr(pos, 0, listy[pos], colors["highlight"])
-    screen.refresh()
+        if absolute_pos > 0:
+            absolute_pos -= 1
+
+    if absolute_pos >= globalpos + max_visible:
+        globalpos += 1
+    elif absolute_pos < globalpos:
+        globalpos -= 1
+    
+    viewport_changed = (globalpos != old_global)    
+
+    pos = absolute_pos - globalpos
+    
+    if viewport_changed:
+        screens["main"].clear()
+    visible = print_list(0, globalpos, view, 1)
+
+    for index, item in enumerate(visible):
+        if index == pos:
+            screens["main"].addstr(index, 0, item, highlight)
+        else:
+            screens["main"].addstr(index, 0, item)
+
+    screens["main"].refresh()
+
     return pos
 
 def ref(screen):
