@@ -14,6 +14,7 @@ offset = 1
 highlight = None
 screens = {}
 colors = {}
+tablet_mode = 0
 
 brother = [
     "MFC-230C","MFC-240C MFP","MFC-250C","MFC-255CW",
@@ -118,7 +119,64 @@ def main(stdscr):
             ref(screens["source"])
         else:
             exit()
+def draw_alphabet():
+    alphabet = ["q","w","e","r","t","y","u","i","o","p","a","s","d","f","g","h","j","k","l","z","x","c","v","b","n","m"," ", "[]", "<-", "->"]
+    map = {}
+    current_x = (width // 2) - (width // 8)
+    current_y = height - 12
+    line = 0
+    limit = 10
+    offset = 0
+    for item in alphabet:
+        if item == " ":
+            offset += 1
+            current_x = ((width // 2) - (width // 8)) + offset * 2
+            line = 0
+            limit = 10 - offset
+            current_y += 3
+            continue
+            
+        screens["source"].addstr(current_y, current_x, item)
+        map.update({(current_y, current_x): item})        
+  
+        line += 1
+        current_x += 3
+        if line == limit:
+            offset += 1
+            current_x = ((width // 2) - (width // 8)) + offset
+            line = 0
+            limit = 10 - offset
+            current_y += 3
+    screens["source"].refresh()
+    return map 
 
+def keyboard():
+    map = draw_alphabet()
+    phrase = ""
+    while True:
+        key = screens["source"].getch()
+        if key == curses.KEY_MOUSE:
+            _, x, y, _, mouse_state = curses.getmouse()
+            if mouse_state == 1:
+                letter = map.get((y, x - 1))
+                if letter:
+                    draw_alphabet()
+                    screens["source"].addstr(y, x - 1, letter, colors["highlight"])
+                    if letter == "<-":
+                        phrase = phrase[:-1]
+                        screens["source"].addstr(height // 6, ((width // 2) - (len(phrase) // 2)) - 5,"                    ")
+                        
+                        screens["source"].addstr(height // 6, (width // 2) - (len(phrase) // 2),phrase)
+                        screens["source"].refresh()
+                        continue
+                    if letter == "[]":
+                        letter = " "
+                    elif letter == "->":
+                        ref(screens["source"])
+                        return phrase
+                    phrase += letter
+                    screens["source"].addstr(height // 6, (width // 2) - (len(phrase) // 2),phrase)
+                    screens["source"].refresh()
 def view():
     ref(screens["main"])
     data = []
@@ -150,7 +208,7 @@ def erase():
 
 
 def start():
-    global globalpos
+    global globalpost, tablet_mode
     ref(screens["main"])    
     globalpos = 0
     pos = 0
@@ -159,6 +217,7 @@ def start():
     while True:
         key = screens["source"].getch()
         if key == curses.KEY_MOUSE:
+            tablet_mode = 1
             _, x, y, _, mouse_state = curses.getmouse()
             y_up = int(height * 0.33)
             y_down = int(height * 0.66)
@@ -190,6 +249,7 @@ def start():
                 save()
                 break
         else:
+            tablet_mode = 0
             if key == ord('\x1b'):
                 save()
                 break
@@ -212,7 +272,7 @@ def start():
 
 
 def simple_select(current_list):
-    global globalpos
+    global globalpost, tablet_mode
     ref(screens["main"])
     globalpos = 0
     pos = 0
@@ -220,6 +280,7 @@ def simple_select(current_list):
     while True:
         key = screens["source"].getch()
         if key == curses.KEY_MOUSE:
+            tablet_mode = 1
             _, x, y, _, mouse_state = curses.getmouse()
             y_up = int(height * 0.33)  
             y_down = int(height * 0.66)
@@ -237,6 +298,7 @@ def simple_select(current_list):
             elif mouse_state == 1 and x > x_right:
                 return current_list[pos + globalpos]
         else:
+            tablet_mode = 0
             if key == ord('w'):
                 pos = select(pos, key, remaining_list, current_list)
             elif key == ord('s'):
@@ -251,8 +313,11 @@ def simple_select(current_list):
                 pos = select(pos, ord('s'), remaining_list, current_list)
 
 def simple_text():
-    inp = screens["text"].edit().strip()
-    ref(screens["box"])
+    if not tablet_mode:
+        inp = screens["text"].edit().strip()
+        ref(screens["box"])
+    else:
+        inp = keyboard()
     return inp
 
 def answer(model):
