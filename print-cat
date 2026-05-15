@@ -65,7 +65,10 @@ epson = ["AM-C4000", "AM-C5000", "AM-C6000", "ST-C8000"]
 hp = []
 
 brands = {"Brother": brother, "Zebra": zebra, "Epson": epson, "HP": hp}
+
 answers = []
+
+parts = ["Exit", "Platin Roller", "Print Head", "Low Media", "Low Ribbon", "Low Ink", "Low Toner", "Seperating Pad Assy", "Feed Roller", "Feed Roller (ADF)", "Seperation Pad (ADF)", "<--"]
 
 def main(stdscr):
     global height, width, highlight
@@ -90,12 +93,15 @@ def main(stdscr):
         if choice == "Start":
             start()
         elif "Erase" in choice:
-            display("Are you sure you want to erase your order list?", 2)
+            display("Are you sure you want to erase your order list?")
             if simple_select(["Yes", "No"]) == "No":
+                ref(screens["source"])
                 continue
             erase()    
+            ref(screens["source"])
         elif "Read" in choice:
             view()
+            ref(screens["source"])
         elif "Update" in choice:
             result = subprocess.run(["curl", "https://raw.githubusercontent.com/bbcs-mi/printer-parts-tracker/refs/heads/main/print-cat"], capture_output=True, text=True)
             if os.name == "posix":
@@ -109,9 +115,9 @@ def main(stdscr):
                 file.write(result.stdout)
             display("Please exit and reopen the program to apply the update.")
             screens["source"].getch()
+            ref(screens["source"])
         else:
             exit()
-            save()
 
 def view():
     ref(screens["main"])
@@ -157,9 +163,6 @@ def start():
             y_up = int(height * 0.33)
             y_down = int(height * 0.66)
             x_right = int(width * 0.80)
-            screens["source"].addstr(0, 0, f"x={x} y={y} state={mouse_state}         ")
-            screens["source"].refresh()
-            
             if mouse_state == 1 and y < y_up and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('w'), current_list, current_list)
             elif mouse_state == 1 and y > y_down and (x > width // 5 and x < width - (width // 5)):
@@ -218,22 +221,19 @@ def simple_select(current_list):
         key = screens["source"].getch()
         if key == curses.KEY_MOUSE:
             _, x, y, _, mouse_state = curses.getmouse()
-            screens["source"].addstr(0, 0, f"x={x} y={y} state={mouse_state}         ")
-            screens["source"].refresh()
             y_up = int(height * 0.33)  
             y_down = int(height * 0.66)
             x_right = int(width * 0.80)
             if mouse_state == 1 and y < y_up and (x > width // 5 and x < width - (width // 5)):
                 pos = select(pos, ord('w'), current_list, current_list)
             elif mouse_state == 1 and y > y_down and (x > width // 5 and x < width - (width // 5)):
-                pos = select(pos, ord('s'), current_list, current_list)        
+                pos = select(pos, ord('s'), current_list, current_list)
             elif mouse_state == 1024 and y < y_up and (x > width // 5 and x < width - (width // 5)):
                 for _ in range(10):
                     pos = select(pos, ord('w'), current_list, current_list)
             elif mouse_state == 1024 and y > y_down and (x > width // 5 and x < width - (width // 5)):
                 for _ in range(10):
                     pos = select(pos, ord('s'), current_list, current_list)
-
             elif mouse_state == 1 and x > x_right:
                 return current_list[pos + globalpos]
         else:
@@ -243,6 +243,12 @@ def simple_select(current_list):
                 pos = select(pos, key, remaining_list, current_list)
             elif key == ord('e'):
                 return current_list[pos + globalpos]
+            elif key == ord('W'):
+                pos = select(pos, ord('w'), remaining_list, current_list)
+                pos = select(pos, ord('w'), remaining_list, current_list)
+            elif key == ord('S'):
+                pos = select(pos, ord('s'), remaining_list, current_list)
+                pos = select(pos, ord('s'), remaining_list, current_list)
 
 def simple_text():
     inp = screens["text"].edit().strip()
@@ -250,25 +256,55 @@ def simple_text():
     return inp
 
 def answer(model):
-    display("Does this printer need repair?", 3)
+    display("Does this printer need repair?")
     if simple_select(["Yes", "No"]) == "No":
         return
     
-    display("Please enter the location or department of the printer.", 3)
+    display("Please enter the location or department of the printer.")
     location = simple_text()
-    display("Please enter the S/N of the printer.", 3)
-    sn = simple_text()
-    display("Which part(s) need replacing?", 3)
-    part = simple_text()
+    display("Please enter the S/N of the printer.")
+    sn = ""
+    part = ""
+    while True:
+        cache = simple_select(["Exit", "0","1","2","3","4","5","6","7","8","9", "<--"])
+        if cache == "Exit":
+            break
+        elif cache == "<--":
+            sn = sn[:-1]
+        else:
+            sn += cache
+        display(f"Please enter the S/N of the printer.\nS/N: {sn}")
+    ref(screens["source"])        
+    display("Which part(s) need replacing?")
+    while True:
+        cache = simple_select(parts)
+        if cache == "Exit":
+            break
+        elif cache == "<--":
+            if not part:
+                continue
+            commas = 0
+            part = part[:-2]
+            new_part = part
+            i = len(part) - 1
+            while part[i] != ",":
+                new_part = new_part[:-1]
+                i -= 1
+            new_part = new_part[:-1]
+            part = new_part + ", "
+        else:
+            part += cache + ", "
+        display(f"Which part(s) need replacing?\n{part}")
+    part = part[:-2] #removes comma and space for nice looks
     answers.append(f"({location}) {model} | {sn}: {part}")
     display("Parts added to list. Make sure to exit in the main menu to save.")
     screens["source"].getch()
     ref(screens["main"])
 
 def display(text, offset=0):
-    ref(screens["main"])
-    screens["main"].addstr(0 + offset, 0, text)
-    screens["main"].refresh()
+    ref(screens["source"])
+    screens["source"].addstr(0 + offset, 0, text)
+    screens["source"].refresh()
 
 def advance(listy, selection):
     if listy == extract_list(brands):
